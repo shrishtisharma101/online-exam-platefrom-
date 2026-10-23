@@ -1,60 +1,3 @@
-
-// require("dotenv").config();
-
-// const express = require("express");
-// const cors = require("cors");
-// const connectDB = require("./config/db");
-
-// const app = express();
-
-// app.use(cors());
-// app.use(express.json());
-
-// app.get("/", (req, res) => {
-//   res.json({
-//     success: true,
-//     message: "Online Exam Platform API is running!",
-//   });
-// });
-
-// app.get("/api/health", (req, res) => {
-//   res.json({
-//     success: true,
-//     message: "Backend is working properly",
-//   });
-// });
-
-// const PORT = process.env.PORT || 5000;
-
-// const startServer = async () => {
-//   await connectDB();
-
-//   app.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-//   });
-// };
-
-// startServer();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 require("dotenv").config();
 
 const express = require("express");
@@ -67,9 +10,24 @@ const attemptRoutes = require("./routes/attemptRoutes");
 
 const app = express();
 
+// Allowed frontend origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://online-exam-platefrom.vercel.app",
+];
+
+// CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -98,7 +56,7 @@ app.use("/api/attempts", attemptRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error(err.message);
 
   res.status(err.status || 500).json({
     success: false,
@@ -106,17 +64,18 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start server after database connection
 const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => {
     console.error(
-      "Could not start server. Check MongoDB URI and Atlas Network Access:",
+      "Could not start server:",
       error.message
     );
     process.exit(1);
